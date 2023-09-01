@@ -22,7 +22,7 @@ class StackFrontier():
 
     def remove(self):
         if self.empty():
-            raise Exception("fronteira vazia")
+            raise Exception("empty frontier")
         else:
             node = self.frontier[-1]
             self.frontier = self.frontier[:-1]
@@ -33,7 +33,7 @@ class QueueFrontier(StackFrontier):
 
     def remove(self):
         if self.empty():
-            raise Exception("fronteira vazia")
+            raise Exception("empty frontier")
         else:
             node = self.frontier[0]
             self.frontier = self.frontier[1:]
@@ -43,22 +43,22 @@ class Maze():
 
     def __init__(self, filename):
 
-        # Lê o arquivo e define a altura e largura do labirinto
+        # Read file and set height and width of maze
         with open(filename) as f:
             contents = f.read()
 
-        # Valida o ponto de partida e o objetivo
+        # Validate start and goal
         if contents.count("A") != 1:
-            raise Exception("o labirinto deve ter exatamente um ponto de partida")
+            raise Exception("maze must have exactly one start point")
         if contents.count("B") != 1:
-            raise Exception("o labirinto deve ter exatamente um objetivo")
+            raise Exception("maze must have exactly one goal")
 
-        # Determina a altura e largura do labirinto
+        # Determine height and width of maze
         contents = contents.splitlines()
         self.height = len(contents)
         self.width = max(len(line) for line in contents)
 
-        # Acompanha as paredes
+        # Keep track of walls
         self.walls = []
         for i in range(self.height):
             row = []
@@ -103,10 +103,10 @@ class Maze():
     def neighbors(self, state):
         row, col = state
         candidates = [
-            ("cima", (row - 1, col)),
-            ("baixo", (row + 1, col)),
-            ("esquerda", (row, col - 1)),
-            ("direita", (row, col + 1))
+            ("up", (row - 1, col)),
+            ("down", (row + 1, col)),
+            ("left", (row, col - 1)),
+            ("right", (row, col + 1))
         ]
 
         result = []
@@ -117,31 +117,31 @@ class Maze():
 
 
     def solve(self):
-        """Encontra uma solução para o labirinto, se existir."""
+        """Finds a solution to maze, if one exists."""
 
-        # Acompanha o número de estados explorados
+        # Keep track of number of states explored
         self.num_explored = 0
 
-        # Inicializa a fronteira apenas com a posição de partida
+        # Initialize frontier to just the starting position
         start = Node(state=self.start, parent=None, action=None)
         frontier = StackFrontier()
         frontier.add(start)
 
-        # Inicializa um conjunto vazio de estados explorados
+        # Initialize an empty explored set
         self.explored = set()
 
-        # Continua até encontrar uma solução
+        # Keep looping until solution found
         while True:
 
-            # Se a fronteira estiver vazia, não há caminho
+            # If nothing left in frontier, then no path
             if frontier.empty():
-                raise Exception("sem solução")
+                raise Exception("no solution")
 
-            # Escolhe um nó da fronteira
+            # Choose a node from the frontier
             node = frontier.remove()
             self.num_explored += 1
 
-            # Se o nó for o objetivo, encontramos uma solução
+            # If node is the goal, then we have a solution
             if node.state == self.goal:
                 actions = []
                 cells = []
@@ -154,10 +154,10 @@ class Maze():
                 self.solution = (actions, cells)
                 return
 
-            # Marca o nó como explorado
+            # Mark node as explored
             self.explored.add(node.state)
 
-            # Adiciona vizinhos à fronteira
+            # Add neighbors to frontier
             for action, state in self.neighbors(node.state):
                 if not frontier.contains_state(state) and state not in self.explored:
                     child = Node(state=state, parent=node, action=action)
@@ -169,7 +169,7 @@ class Maze():
         cell_size = 50
         cell_border = 2
 
-        # Cria um canvas em branco
+        # Create a blank canvas
         img = Image.new(
             "RGBA",
             (self.width * cell_size, self.height * cell_size),
@@ -181,31 +181,31 @@ class Maze():
         for i, row in enumerate(self.walls):
             for j, col in enumerate(row):
 
-                # Paredes
+                # Walls
                 if col:
                     fill = (40, 40, 40)
 
-                # Início
+                # Start
                 elif (i, j) == self.start:
                     fill = (255, 0, 0)
 
-                # Objetivo
+                # Goal
                 elif (i, j) == self.goal:
                     fill = (0, 171, 28)
 
-                # Solução
+                # Solution
                 elif solution is not None and show_solution and (i, j) in solution:
                     fill = (220, 235, 113)
 
-                # Explorado
+                # Explored
                 elif solution is not None and show_explored and (i, j) in self.explored:
                     fill = (212, 97, 85)
 
-                # Célula vazia
+                # Empty cell
                 else:
                     fill = (237, 240, 252)
 
-                # Desenha a célula
+                # Draw cell
                 draw.rectangle(
                     ([(j * cell_size + cell_border, i * cell_size + cell_border),
                       ((j + 1) * cell_size - cell_border, (i + 1) * cell_size - cell_border)]),
@@ -216,6 +216,14 @@ class Maze():
 
 
 if len(sys.argv) != 2:
-    sys.exit("Uso: python maze.py maze.txt")
+    sys.exit("Usage: python maze.py maze.txt")
 
 m = Maze(sys.argv[1])
+print("Maze:")
+m.print()
+print("Solving...")
+m.solve()
+print("States Explored:", m.num_explored)
+print("Solution:")
+m.print()
+m.output_image("maze.png", show_explored=True)
